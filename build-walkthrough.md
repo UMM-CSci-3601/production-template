@@ -12,7 +12,33 @@ Let's walk through an trimmed version of the output of running `./gradlew build`
 
 The main thing the `gradlew` script does is download `gradle` for us so we have it even if it wasn't previously installed on the computer we're sitting in front of. It then passes on any arguments (like `build` in this example) to `gradle`.
 
-The whole "download `gradle`" business is silent, but after that there is a ton of output. Note that anything that starts with a colon (`:`) in this output is the name of a `gradle` task. These first lines are actually just lists of `gradle` tasks, where one "calls" (requires) the next, which requires the next, etc.:
+After `gradle` is downloaded (if necessary), then `gradle` performs the specified tasks (in this case `build`). To see the list of sub-tasks `gradle` will execute for a given task, use the `-m` flag; if we do `./gradlew -m build` we get:
+
+```
+:server:compileJava SKIPPED
+:server:processResources SKIPPED
+:server:classes SKIPPED
+:server:jar SKIPPED
+:server:startScripts SKIPPED
+:server:distTar SKIPPED
+:server:distZip SKIPPED
+:server:assemble SKIPPED
+:client:nodeSetup SKIPPED
+:client:yarnSetup SKIPPED
+:client:yarn SKIPPED
+:client:yarn_run_test SKIPPED
+:client:runClientTests SKIPPED
+:server:compileTestJava SKIPPED
+:server:processTestResources SKIPPED
+:server:testClasses SKIPPED
+:server:test SKIPPED
+:server:check SKIPPED
+:server:build SKIPPED
+```
+
+These appear in the order in which they will need to be executed, which is sort of the reverse of the dependency graph. If a `gradle` task (e.g., `build`) depends on another `gradle` task (e.g., `check`), then the dependent task (`check`) appears first because it has to be completed before `build` can be considered done. The exact order you get might vary, especially if you (or we) have made some changes to the configuration or the codebase since this was written. Since the dependency graph is really a _graph_ there can be sets of tasks where there is no specified or required ordering among them. At the top level, for example, this has some of the `:server` tasks before the `:client` tasks, but I think that could have done all or most of the `:server` tasks after doing all the `:client` tasks.
+
+Now let's consider the output of running the `build` task on a completely clean checkout of the project, so essentially everything will need to be done. The whole "download `gradle`" business is silent, but after that there is a ton of output. Note that anything that starts with a colon (`:`) in this output is the name of a `gradle` task. These first lines are actually just lists of `gradle` tasks, where one "calls" (requires) the next, which requires the next, etc.:
 
 ```
 :server:compileJava
@@ -24,6 +50,8 @@ The whole "download `gradle`" business is silent, but after that there is a ton 
 :server:distZip
 :server:assemble
 ```
+
+These first few tasks compile all the Java (server) code, and construct the various deployment artifacts (the `jar` files, the startup scripts, and the `tar` and `zip` archives. Note that this happens _without running any tests_, which is why `./gradlew assemble` is faster than `./gradlew build`, but more dangerous because you can `assemble` things that simply don't work without any feedback indicating that there is a problem.
 
 Then we make sure we have `node` and `yarn` installed and configured, including an output of the huge package dependency tree for `yarn` (which I've trimmed here).
 
